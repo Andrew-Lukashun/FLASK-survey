@@ -1,1 +1,14 @@
 .idea/
+
+venv/
+.venv/
+
+# Временные/отладочные файлы
+add_test_data.py
+create_test_user.py
+debug_users.py
+init_simple.py
+
+config.py
+
+__pycache__
