@@ -1,6 +1,8 @@
-# Все маршруты приложения - полная версия с анонимным голосованием
+# Все маршруты приложения - с использованием логических классов
 from flask import render_template, request, redirect, url_for, flash, session
 import functools
+from app.db.survey_logic import LogicProvider as SurveyLogic
+from app.db.user_logic import LogicProvider as UserLogic
 from app.db.raw_connection import connect
 
 app = None
@@ -20,18 +22,15 @@ def register_routes(flask_app):
     global app
     app = flask_app
 
+    # Инициализация логических провайдеров
+    survey_logic = SurveyLogic(provider='raw')
+    user_logic = UserLogic(provider='raw')
+
     # Главная страница - список опросов
     @app.route("/")
     def index():
-        conn = connect()
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT s.id, s.title, s.description, s.created_by, s.created_at, s.is_anonymous, u.user_name 
-                FROM surveys s 
-                LEFT JOIN users u ON s.created_by = u.id 
-                ORDER BY s.created_at DESC
-            """)
-            surveys = cursor.fetchall()
+        # Используем логический класс для получения опросов
+        surveys = survey_logic.get_all_surveys()
         return render_template('surveys.html', all_surveys=surveys)
 
     # Регистрация
@@ -40,41 +39,15 @@ def register_routes(flask_app):
         if request.method == 'POST':
             user_name = request.form['user_name']
             password = request.form['password']
-            print(f"DEBUG: Registration attempt - Username: '{user_name}', Password: '{password}'")
 
-            conn = connect()
-            with conn.cursor() as cursor:
-                try:
-                    # Проверяем, нет ли уже такого пользователя
-                    cursor.execute("SELECT id FROM users WHERE user_name = %s", (user_name,))
-                    existing = cursor.fetchone()
-                    print(f"DEBUG: Existing user check: {existing}")
+            try:
+                # Используем логический класс для создания пользователя
+                user_logic.create_user(user_name=user_name, password=password)
+                flash('Registration successful! Please login with your credentials.')
+                return redirect(url_for('login'))
 
-                    if existing:
-                        flash('Username already exists! Please choose another.')
-                        return render_template('registration.html')
-
-                    # СОЗДАЕМ ПОЛЬЗОВАТЕЛЯ
-                    print("DEBUG: Creating new user...")
-                    cursor.execute(
-                        "INSERT INTO users (user_name, password) VALUES (%s, %s)",
-                        (user_name, password)
-                    )
-                    conn.commit()
-                    print(f"DEBUG: User '{user_name}' created successfully!")
-
-                    # ПРОВЕРЯЕМ что пользователь создался
-                    cursor.execute("SELECT id, user_name FROM users WHERE user_name = %s", (user_name,))
-                    created_user = cursor.fetchone()
-                    print(f"DEBUG: Verification - Created user: {created_user}")
-
-                    flash('Registration successful! Please login with your credentials.')
-                    return redirect(url_for('login'))
-
-                except Exception as e:
-                    print(f"DEBUG: Registration ERROR: {e}")
-                    flash(f'Registration error: {e}')
-                    conn.rollback()
+            except Exception as e:
+                flash(f'Registration error: {e}')
 
         return render_template('registration.html')
 
@@ -84,30 +57,16 @@ def register_routes(flask_app):
         if request.method == 'POST':
             user_name = request.form['user_name']
             password = request.form['password']
-            print(f"DEBUG: Login attempt - Username: '{user_name}', Password: '{password}'")
 
-            conn = connect()
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id, user_name, password FROM users WHERE user_name = %s",
-                    (user_name,)
-                )
-                user = cursor.fetchone()
+            # Используем логический класс для получения пользователя
+            user = user_logic.get_user(user_name)
 
-            if user:
-                print(f"DEBUG: User found - ID: {user[0]}, Username: '{user[1]}', Password in DB: '{user[2]}'")
-                print(f"DEBUG: Password match: {user[2] == password}")
-            else:
-                print(f"DEBUG: User '{user_name}' NOT FOUND in database")
-
-            if user and user[2] == password:
-                session['user_id'] = user[0]
-                session['user_name'] = user[1]
+            if user and user['password'] == password:
+                session['user_id'] = user['id']
+                session['user_name'] = user['user_name']
                 session['loggedin'] = True
-                print(f"DEBUG: Login SUCCESSFUL for {user_name}")
                 return redirect(url_for('index'))
             else:
-                print(f"DEBUG: Login FAILED for {user_name}")
                 flash('Incorrect username or password!')
 
         return render_template('login.html')
@@ -128,14 +87,14 @@ def register_routes(flask_app):
             is_anonymous = bool(request.form.get('is_anonymous', False))
             created_by = session.get('user_id')
 
-            conn = connect()
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO surveys (title, description, created_by, is_anonymous) VALUES (%s, %s, %s, %s) RETURNING id",
-                    (title, description, created_by, is_anonymous)
-                )
-                survey_id = cursor.fetchone()[0]
-                conn.commit()
+            # Используем логический класс для создания опроса
+            result = survey_logic.create_survey(
+                title=title,
+                description=description,
+                created_by=created_by,
+                is_anonymous=is_anonymous
+            )
+            survey_id = result['id']
 
             flash('Survey created successfully! Add options')
             return redirect(url_for('add_option', survey_id=survey_id))
@@ -145,26 +104,17 @@ def register_routes(flask_app):
     # Просмотр опроса
     @app.route('/survey/<int:survey_id>')
     def get_survey(survey_id):
+        # Используем логические классы для получения данных
+        survey = survey_logic.get_survey(survey_id)
+        options = survey_logic.get_survey_options(survey_id)
+
+        # Проверяем, голосовал ли пользователь
+        user_voted = False
+        voter_ip = request.remote_addr
+
+        # Для проверки голосования используем прямое подключение
         conn = connect()
         with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT s.id, s.title, s.description, s.created_by, s.created_at, s.is_anonymous, u.user_name 
-                FROM surveys s 
-                LEFT JOIN users u ON s.created_by = u.id 
-                WHERE s.id = %s
-            """, (survey_id,))
-            survey = cursor.fetchone()
-
-            cursor.execute(
-                "SELECT id, description FROM options WHERE survey_id = %s",
-                (survey_id,)
-            )
-            options = cursor.fetchall()
-
-            # Проверяем, голосовал ли пользователь (по user_id или IP)
-            user_voted = False
-            voter_ip = request.remote_addr
-
             if session.get('user_id'):
                 cursor.execute(
                     "SELECT 1 FROM votes WHERE survey_id = %s AND user_id = %s",
@@ -191,6 +141,7 @@ def register_routes(flask_app):
             flash('Please select an option to vote!')
             return redirect(url_for('get_survey', survey_id=survey_id))
 
+        # Используем прямое подключение для сложной логики голосования
         conn = connect()
         with conn.cursor() as cursor:
             # Проверяем, можно ли голосовать анонимно
@@ -202,7 +153,7 @@ def register_routes(flask_app):
                 flash('This survey requires registration to vote!')
                 return redirect(url_for('login'))
 
-            # Проверяем, голосовал ли уже (по user_id или IP)
+            # Проверяем, голосовал ли уже
             if user_id:
                 cursor.execute(
                     "SELECT 1 FROM votes WHERE survey_id = %s AND user_id = %s",
@@ -242,30 +193,19 @@ def register_routes(flask_app):
         if request.method == 'POST':
             description = request.form['description']
 
-            conn = connect()
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO options (survey_id, description) VALUES (%s, %s)",
-                    (survey_id, description)
-                )
-                conn.commit()
-
+            # Используем логический класс для добавления варианта
+            survey_logic.add_option(survey_id, description)
             flash('Option added successfully!')
             return redirect(url_for('add_option', survey_id=survey_id))
 
-        conn = connect()
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT id, description FROM options WHERE survey_id = %s",
-                (survey_id,)
-            )
-            options = cursor.fetchall()
-
+        # Используем логический класс для получения вариантов
+        options = survey_logic.get_survey_options(survey_id)
         return render_template('add_option.html', survey_id=survey_id, options=options)
 
     # Просмотр результатов
     @app.route('/survey/<int:survey_id>/votes')
     def view_votes(survey_id):
+        # Для сложных запросов используем прямое подключение
         conn = connect()
         with conn.cursor() as cursor:
             cursor.execute("""
@@ -287,10 +227,7 @@ def register_routes(flask_app):
     @app.route('/delete-survey/<int:survey_id>', methods=['POST'])
     @login_required
     def delete_survey(survey_id):
-        conn = connect()
-        with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM surveys WHERE id = %s", (survey_id,))
-            conn.commit()
-
+        # Используем логический класс для удаления опроса
+        survey_logic.delete_survey(survey_id)
         flash('Survey deleted successfully!')
         return redirect(url_for('index'))

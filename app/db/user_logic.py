@@ -4,7 +4,7 @@ from app.db.orm_data_provider import OrmDataProvider
 
 class LogicProvider:
     def __init__(self, provider='raw'):
-        self.data_provider = RawDataProvider if provider == 'raw' else OrmDataProvider
+        self.data_provider = RawDataProvider() if provider == 'raw' else OrmDataProvider()
 
     def create_user(self, **kwargs):
         return self.data_provider.create_user(**kwargs)

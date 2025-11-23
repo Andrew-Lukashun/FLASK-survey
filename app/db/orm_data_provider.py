@@ -68,4 +68,54 @@ class OrmDataProvider:
             if user:
                 return {'id': user.id, 'user_name': user.user_name, 'password': user.password}
             return None
-        
+
+    @staticmethod
+    def check_vote(survey_id, user_id=None, voter_ip=None):
+        with get_session() as session:
+            if user_id:
+                stmt = select(Vote).where(
+                    and_(Vote.survey_id == survey_id, Vote.user_id == user_id)
+                )
+            else:
+                stmt = select(Vote).where(
+                    and_(Vote.survey_id == survey_id, Vote.voter_ip == voter_ip)
+                )
+            vote = session.execute(stmt).scalar_one_or_none()
+            return vote is not None
+
+    @staticmethod
+    def submit_vote(survey_id, option_id, user_id=None, voter_ip=None):
+        with get_session() as session:
+            vote = Vote(survey_id=survey_id, user_id=user_id, voter_ip=voter_ip)
+            session.add(vote)
+            session.commit()
+            session.refresh(vote)
+
+            vote_option = VoteOption(vote_id=vote.id, option_id=option_id)
+            session.add(vote_option)
+            session.commit()
+
+    @staticmethod
+    def get_survey_results(survey_id):
+        with get_session() as session:
+            stmt = select(
+                Option.description,
+                func.count(VoteOption.id).label('vote_count')
+            ).select_from(Option).outerjoin(
+                VoteOption, Option.id == VoteOption.option_id
+            ).where(
+                Option.survey_id == survey_id
+            ).group_by(
+                Option.id, Option.description
+            ).order_by(
+                func.count(VoteOption.id).desc()
+            )
+            results = session.execute(stmt).all()
+            return [(result[0], result[1]) for result in results]
+
+    @staticmethod
+    def get_survey_title(survey_id):
+        with get_session() as session:
+            stmt = select(Survey.title).where(Survey.id == survey_id)
+            result = session.execute(stmt).scalar_one_or_none()
+            return result
