@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Survey Details</h2>
+<p><strong>Title:</strong> {{ survey.title }}</p>
+<p><strong>Description:</strong> {{ survey.description if survey.description else 'No description' }}</p>
+<p><strong>Created By:</strong> {{ survey.user_name if survey.user_name else 'Anonymous' }}</p>
+<p><strong>Created At:</strong> {{ survey.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+<p><strong>Status:</strong> {{ 'Anonymous (anyone can vote)' if survey.is_anonymous else 'Registered users only' }}</p>
+
+{% if not is_voted %}
+    {% if can_vote %}
+        <h3>Vote for this survey:</h3>
+        <form method="post" action="{{ url_for('submit_vote') }}">
+            <input type="hidden" name="survey_id" value="{{ survey.id }}">
+            {% for option in options %}
+            <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                <input type="radio" name="option_id" value="{{ option.id }}" id="option{{ option.id }}" required>
+                <label for="option{{ option.id }}" style="font-size: 16px;">{{ option.description }}</label>
+            </div>
+            {% endfor %}
+            <button type="submit" style="margin-top: 15px;">Submit Vote</button>
+        </form>
+
+        {% if not session.loggedin and survey.is_anonymous %}
+            <p style="color: #666; font-size: 14px; margin-top: 10px;">
+                <em>Anonymous voting - no registration required</em>
+            </p>
+        {% endif %}
+    {% else %}
+        <div style="background: #fff3cd; padding: 15px; border-radius: 4px; border: 1px solid #ffeaa7;">
+            <p><strong>This survey requires registration to vote.</strong></p>
+            <a href="{{ url_for('login') }}" style="color: #856404;">Please login to vote</a>
+        </div>
+    {% endif %}
+{% else %}
+    <div style="background: #d4edda; padding: 15px; border-radius: 4px; border: 1px solid #c3e6cb;">
+        <p>You have already voted in this survey.</p>
+        <a href="{{ url_for('view_votes', survey_id=survey.id) }}">View Results</a>
+    </div>
+{% endif %}
+
+{% if session.user_id == survey.created_by %}
+    <hr>
+    <h3>Survey Management</h3>
+    <a href="{{ url_for('add_option', survey_id=survey.id) }}" class="btn">Add Options</a>
+    <form action="{{ url_for('delete_survey', survey_id=survey.id) }}" method="post" style="display: inline;">
+        <button type="submit" class="btn btn-danger">Delete Survey</button>
+    </form>
+{% endif %}
+{% endblock %}

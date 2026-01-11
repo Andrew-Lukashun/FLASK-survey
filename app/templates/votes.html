@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Voting Results: {{ survey_title }}</h2>
+
+{% if votes %}
+    <div style="max-width: 500px;">
+    {% for vote in votes %}
+        <div style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 16px;">{{ vote.description }}</span>
+                <span style="background: #3498db; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold;">
+                    {{ vote.vote_count }} votes
+                </span>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+{% else %}
+    <p>No votes yet for this survey.</p>
+{% endif %}
+
+<div style="margin-top: 20px;">
+    <a href="{{ url_for('get_survey', survey_id=survey_id) }}">← Back to Survey</a>
+</div>
+{% endblock %}

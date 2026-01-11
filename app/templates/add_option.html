@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Add Option to Survey</h2>
+
+<div style="margin-bottom: 20px; padding: 15px; background: #eef2f7; border-radius: 5px;">
+    <p><strong>Adding options for:</strong> Survey ID #{{ survey_id }}</p>
+</div>
+
+<form method="post">
+    <label for="description">Option Description:</label>
+    <input type="text" id="description" name="description" placeholder="Enter answer variant..." required />
+
+    <button type="submit">Add Option</button>
+</form>
+
+<hr>
+
+<h3>Current Options:</h3>
+{% if options %}
+    <ul>
+        {% for option in options %}
+        <li style="margin-bottom: 8px;">
+            <strong>{{ option.description }}</strong> 
+            <span style="color: #888; font-size: 0.8em;">(ID: {{ option.id }})</span>
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No options added yet.</p>
+{% endif %}
+
+<div style="margin-top: 30px;">
+    <a href="{{ url_for('get_survey', survey_id=survey_id) }}" class="btn">Finish & View Survey</a>
+    <br><br>
+    <a href="{{ url_for('index') }}">Back to list</a>
+</div>
+{% endblock %}
