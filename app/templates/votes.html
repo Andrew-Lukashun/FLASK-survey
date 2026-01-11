@@ -1,4 +1,3 @@
-
 {% extends 'base.html' %}
 
 {% block content %}
@@ -9,9 +8,9 @@
     {% for vote in votes %}
         <div style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 16px;">{{ vote[0] }}</span>
+                <span style="font-size: 16px;">{{ vote.description }}</span>
                 <span style="background: #3498db; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold;">
-                    {{ vote[1] }} votes
+                    {{ vote.vote_count }} votes
                 </span>
             </div>
         </div>

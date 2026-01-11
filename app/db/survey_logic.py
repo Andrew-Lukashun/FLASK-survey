@@ -1,4 +1,3 @@
-# Логика опросов с поддержкой raw и ORM провайдеров
 from app.db.raw_data_provider import RawDataProvider
 from app.db.orm_data_provider import OrmDataProvider
 
@@ -7,6 +6,8 @@ class LogicProvider:
         self.data_provider = RawDataProvider() if provider == 'raw' else OrmDataProvider()
 
     def create_survey(self, **kwargs):
+        if not kwargs.get('title'):
+            raise ValueError("Survey title is required")
         return self.data_provider.create_survey(**kwargs)
 
     def get_all_surveys(self):
