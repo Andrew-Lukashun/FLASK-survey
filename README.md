@@ -25,16 +25,20 @@
 
 ### 1. Подготовка окружения
 Клонируйте репозиторий и создайте виртуальное окружение:
+```
 git clone [https://github.com/Andrew-Lukashun/FLASK-survey.git]
 cd FLASK-survey
 python -m venv venv
+```
 Активируйте виртуальное окружение и установите зависимости:
+```
 pip install -r requirements.txt
-
+```
 ### 2. Настройка базы данных
 Убедитесь, что у вас установлен и запущен PostgreSQL. Создайте базу данных и примените схему таблиц из файла schema.sql:
+```
 psql -U postgres -d your_db_name -f app/db/schema.sql
-
+```
 ### 3. Запуск приложения
 Запустите сервер разработки Flask:
 flask run
