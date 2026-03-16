@@ -1,0 +1,33 @@
+# Flask Survey App
+
+Веб-приложение для создания и проведения опросов. Проект демонстрирует работу с Flask, интеграцию с PostgreSQL и использование различных подходов к работе с данными (Raw SQL и SQLAlchemy ORM).
+
+## Основные возможности
+* **Управление опросами**: создание новых опросов с описанием и вариантами ответов.
+* **Система голосования**: возможность отдавать голоса и просматривать результаты в реальном времени.
+* **Гибкость данных**: реализована поддержка работы как через «сырые» SQL-запросы, так и через SQLAlchemy ORM.
+* **Безопасность**: поддержка анонимных опросов и логирование действий пользователей.
+
+## Технологический стек
+* **Backend**: Python 3.10+, Flask
+* **Database**: PostgreSQL
+* **ORM/DB Tools**: SQLAlchemy, Psycopg2
+* **Frontend**: HTML5, CSS3 (JinJa2 templates)
+
+## Архитектура проекта
+Проект организован по модульному принципу:
+* `app/db/`: содержит логику работы с базой данных.
+* `app/db/orm_data_provider.py` & `raw_data_provider.py`: реализация паттерна "Провайдер" для переключения между методами доступа к БД.
+* `app/db/models.py`: описание моделей SQLAlchemy.
+* `app/db/queries.py`: хранилище SQL-запросов для Raw-подхода.
+
+## Установка и запуск
+
+### 1. Подготовка окружения
+Клонируйте репозиторий и создайте виртуальное окружение:
+```bash
+git clone [https://github.com/Andrew-Lukashun/FLASK-survey.git](https://github.com/Andrew-Lukashun/FLASK-survey.git)
+cd FLASK-survey
+python -m venv venv
+source venv/bin/scripts/activate  # Для Windows: venv\Scripts\activate
+pip install -r requirements.txt
