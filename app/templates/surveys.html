@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>All Surveys</h2>
+
+{% if all_surveys %}
+    <ol>
+    {% for survey in all_surveys %}
+        <li style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+            <strong>
+                <a href="{{ url_for('get_survey', survey_id=survey.id) }}">
+                    {{ survey.title }}
+                </a>
+            </strong>
+            <br>
+            <span style="color: #666;">{{ survey.description if survey.description else 'No description' }}</span>
+            
+            {% if session.user_id == survey.created_by %}
+            <form action="{{ url_for('delete_survey', survey_id=survey.id) }}" method="post" style="display: inline; margin-left: 10px;">
+                <button type="submit" style="background: #e74c3c; padding: 2px 8px; font-size: 12px;">Delete</button>
+            </form>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ol>
+{% else %}
+    <p>No surveys available. <a href="{{ url_for('create_survey') }}">Create the first one!</a></p>
+{% endif %}
+{% endblock %}

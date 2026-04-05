@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Create Survey</h2>
+<form method="post">
+    <label for="title">Title:</label>
+    <input type="text" id="title" name="title" required />
+
+    <label for="description">Description:</label>
+    <textarea id="description" name="description"></textarea>
+
+    <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+        <h3>Survey Type:</h3>
+        <div style="margin: 10px 0;">
+            <input type="radio" id="registered_only" name="is_anonymous" value="false" checked>
+            <label for="registered_only"><strong>Registered users only</strong> - only logged-in users can vote</label>
+        </div>
+        <div style="margin: 10px 0;">
+            <input type="radio" id="anonymous" name="is_anonymous" value="true">
+            <label for="anonymous"><strong>Anonymous voting</strong> - anyone can vote without registration</label>
+        </div>
+    </div>
+
+    <button type="submit">Create Survey</button>
+</form>
+{% endblock %}
